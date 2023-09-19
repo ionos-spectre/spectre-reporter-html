@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "lib/spectre/reporter/html"
-
 Gem::Specification.new do |spec|
   spec.name          = "spectre-reporter-html"
-  spec.version       = Spectre::Reporter::HTML::VERSION
+  spec.version       = "1.1.1"
   spec.authors       = ["Christian Neubauer"]
   spec.email         = ["christian.neubauer@ionos.com"]
 

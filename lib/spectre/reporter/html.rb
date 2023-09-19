@@ -5,8 +5,6 @@ require 'spectre/reporter'
 
 module Spectre::Reporter
   class HTML
-    VERSION = '1.1.1'
-
     def initialize config
       @config = config
       @date_format = '%FT%T.%L'
