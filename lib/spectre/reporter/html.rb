@@ -121,8 +121,15 @@ module Spectre::Reporter
             data: run_info.data,
             failure: failure,
             error: error,
-            # the <script> element has to be escaped in any string, as it causes the inline JavaScript to break
-            log: run_info.log.map { |x| [x[0], x[1].to_s.gsub(/\<(\/*script)/, '<`\1'), x[2], x[3]] },
+            log: run_info.log.map do |x|
+              log_text = x[1].to_s
+                # the <script> element has to be escaped in any string, as it causes the inline JavaScript to break
+                .gsub(/\<(\/*script)/, '<`\1')
+                .force_encoding("ISO-8859-1")
+                .encode("UTF-8")
+
+              [x[0], CGI::escapeHTML(log_text), x[2], x[3]]
+            end,
           }
         end,
         config: @config.obfuscate!,
