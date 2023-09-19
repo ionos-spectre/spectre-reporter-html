@@ -5,7 +5,7 @@ require 'spectre/reporter'
 
 module Spectre::Reporter
   class HTML
-    VERSION = '1.1.0'
+    VERSION = '1.1.1'
 
     def initialize config
       @config = config
