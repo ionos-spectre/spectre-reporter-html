@@ -126,7 +126,7 @@ module Spectre::Reporter
                 .force_encoding("ISO-8859-1")
                 .encode("UTF-8")
 
-              [x[0], CGI::escapeHTML(log_text), x[2], x[3]]
+              [x[0], log_text, x[2], x[3]]
             end,
           }
         end,

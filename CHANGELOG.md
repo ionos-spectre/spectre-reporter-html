@@ -1,4 +1,9 @@
-## [1.1.1] - 2022-10-26
+## [1.1.2] - 2023-09-19
+
+- Remove HTML encoding of log messages
+
+
+## [1.1.1] - 2023-09-19
 
 - Log message encoding added
 
