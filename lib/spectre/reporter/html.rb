@@ -5,8 +5,6 @@ require 'spectre/reporter'
 
 module Spectre::Reporter
   class HTML
-    VERSION = '1.1.0'
-
     def initialize config
       @config = config
       @date_format = '%FT%T.%L'
@@ -1166,10 +1164,6 @@ module Spectre::Reporter
       file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
 
       File.write(file_path, html_str)
-    end
-
-    Spectre.register do |config|
-      Spectre::Reporter.add HTML.new(config)
     end
   end
 end
