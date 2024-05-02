@@ -1,14 +1,13 @@
 require 'cgi'
 require 'base64'
-require 'spectre'
-require 'spectre/reporter'
+require 'socket'
 
 module Spectre
   module Reporter
     class HTML
       def initialize config
         @config = config
-        @date_format = '%FT%T.%L'
+        @date_format = config['log_date_format']
       end
 
       def get_error_info error
@@ -57,10 +56,10 @@ module Spectre
                          end
 
         json_report = {
-          command: $COMMAND,
-          project: @config['project'],
+          command: $COMMAND || '',
+          project: @config['project'] || '',
           date: now.strftime(@date_format),
-          environment: @config['environment'],
+          environment: @config['environment'] || '',
           hostname: Socket.gethostname,
           duration: run_infos.sum(&:duration),
           failures: failures.count,
@@ -70,7 +69,7 @@ module Spectre
           total: run_infos.count,
           overall_status:,
           tags: run_infos
-            .map { |x| x.spec.tags }
+            .map { |x| x.respond_to?(:tags) ? x.parent.tags : [] }
             .flatten
             .uniq
             .sort,
@@ -78,50 +77,42 @@ module Spectre
             failure = nil
             error = nil
 
-            if run_info.failed? and !run_info.failure.cause
-              failure_message = "Expected #{run_info.failure.expectation}"
-              failure_message += " with #{run_info.data}" if run_info.data
-              failure_message += ' but it failed'
-              failure_message += " with message: #{run_info.failure.message}" if run_info.failure.message
-
+            if run_info.failure
               failure = {
-                message: failure_message,
-                expected: run_info.failure.expected,
-                actual: run_info.failure.actual,
+                message: run_info.failure.message,
+                desc: run_info.failure.desc,
               }
             end
 
-            if run_info.error or (run_info.failed? and run_info.failure.cause)
-              error = run_info.error || run_info.failure.cause
-
-              file, line = get_error_info(error)
+            if run_info.error
+              file, line = get_error_info(run_info.error)
 
               error = {
-                type: error.class.name,
-                message: error.message,
+                type: run_info.error.class.name,
+                message: run_info.error.message,
                 file:,
                 line:,
-                stack_trace: error.backtrace,
+                stack_trace: run_info.error.backtrace,
               }
             end
 
             {
               status: run_info.status,
-              subject: run_info.spec.subject.desc,
-              context: run_info.spec.context.__desc,
-              tags: run_info.spec.tags,
-              name: run_info.spec.name,
-              desc: run_info.spec.desc,
-              file: run_info.spec.file,
+              subject: run_info.parent.root.desc,
+              context: run_info.parent.desc,
+              tags: run_info.parent.respond_to?(:tags) ? run_info.parent.tags : nil,
+              name: run_info.parent.name,
+              desc: run_info.parent.desc,
+              file: run_info.parent.respond_to?(:file) ? run_info.parent.file : nil,
               started: run_info.started.strftime(@date_format),
               finished: run_info.finished.strftime(@date_format),
               duration: run_info.duration,
-              properties: run_info.properties,
-              data: run_info.data,
+              properties: {},
+              data: run_info.parent.respond_to?(:data) ? run_info.parent.data : nil,
               failure:,
               error:,
               # the <script> element has to be escaped in any string, as it causes the inline JavaScript to break
-              log: run_info.log.map { |x| [x[0], x[1].to_s.gsub(%r{<(/*script)}, '<`\1'), x[2], x[3]] },
+              log: run_info.logs.map { |x| [x[0], x[1].to_s.gsub(%r{<(/*script)}, '<`\1'), x[2], x[3]] },
             }
           end,
           config: @config.obfuscate!,
@@ -952,7 +943,7 @@ module Spectre
 
                                       <ul class="spectre-log" v-if="shownLogs.includes(runInfo)">
                                         <li v-for="logEntry in runInfo.log" class="spectre-log-entry">
-                                          <span class="spectre-log-timestamp">{{ logEntry[0] }}</span> <span class="spectre-log-level" :class="'spectre-log-level-' + logEntry[2]">{{ logEntry[2] }}</span> -- <span class="spectre-log-name">{{ logEntry[3] }}</span>: <span class="spectre-log-message">{{ logEntry[1] }}</span>
+                                          <span class="spectre-log-timestamp">{{ logEntry[0] }}</span> <span class="spectre-log-level" :class="'spectre-log-level-' + logEntry[1]">{{ logEntry[1] }}</span> -- <span class="spectre-log-name">{{ logEntry[2] }}</span>: <span class="spectre-log-message">{{ logEntry[3] }}</span>
                                         </li>
                                       </ul>
                                     </fieldset>
@@ -1160,7 +1151,7 @@ module Spectre
           </html>
         HTML
 
-        FileUtils.mkdir_p @config['out_path']
+        FileUtils.mkdir_p(@config['out_path'])
 
         file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
 
