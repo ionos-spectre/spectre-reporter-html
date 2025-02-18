@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.description   = 'Writes an interactive HTML report for spectre test runs'
   spec.homepage      = 'https://github.com/ionos-spectre/spectre-reporter-html'
   spec.license       = 'GPL-3.0-or-later'
-  spec.required_ruby_version = '>= 3.1.0'
+  spec.required_ruby_version = '>= 3.4'
 
   spec.metadata['homepage_uri']    = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/ionos-spectre/spectre-reporter-html'
@@ -20,5 +20,5 @@ Gem::Specification.new do |spec|
   spec.files        += Dir.glob('resources/**/*')
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'spectre-core', '~> 2.0.0'
+  spec.add_dependency 'base64'
 end

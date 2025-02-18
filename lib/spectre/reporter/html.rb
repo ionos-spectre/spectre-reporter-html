@@ -40,10 +40,10 @@ module Spectre
       def report run_infos
         now = Time.now
 
-        failures = run_infos.reject { |x| x.failure.nil? }
-        errors = run_infos.reject { |x| x.error.nil? }
-        skipped = run_infos.select(&:skipped?)
-        succeeded_count = run_infos.count - failures.count - errors.count - skipped.count
+        failures = run_infos.reject { |x| x.status == :failed }
+        errors = run_infos.reject { |x| x.status == :error }
+        skipped = run_infos.select { |x| x.status == :skipped }
+        succeeded = run_infos.select { |x| x.status == :success }
 
         overall_status = if failures.count.positive?
                            'failed'
@@ -56,16 +56,16 @@ module Spectre
                          end
 
         json_report = {
-          command: $COMMAND || '',
+          command: $COMMAND || 'spectre',
           project: @config['project'] || '',
           date: now.strftime(@date_format),
           environment: @config['environment'] || '',
           hostname: Socket.gethostname,
-          duration: run_infos.sum(&:duration),
+          duration: run_infos.sum { |x| x.finished - x.started },
           failures: failures.count,
           errors: errors.count,
           skipped: skipped.count,
-          succeeded: succeeded_count,
+          succeeded: succeeded.count,
           total: run_infos.count,
           overall_status:,
           tags: run_infos
@@ -74,15 +74,7 @@ module Spectre
             .uniq
             .sort,
           run_infos: run_infos.map do |run_info|
-            failure = nil
             error = nil
-
-            if run_info.failure
-              failure = {
-                message: run_info.failure.message,
-                desc: run_info.failure.desc,
-              }
-            end
 
             if run_info.error
               file, line = get_error_info(run_info.error)
@@ -106,10 +98,21 @@ module Spectre
               file: run_info.parent.respond_to?(:file) ? run_info.parent.file : nil,
               started: run_info.started.strftime(@date_format),
               finished: run_info.finished.strftime(@date_format),
-              duration: run_info.duration,
+              duration: run_info.finished - run_info.started,
               properties: {},
               data: run_info.parent.respond_to?(:data) ? run_info.parent.data : nil,
-              failure:,
+              evaluations: run_info.evaluations
+                .select { |x| x.failures.any? }
+                .map do |evaluation|
+                  {
+                    desc: evaluation.desc,
+                    failures: evaluation.failures.map do |failure|
+                      {
+                        message: failure.message,
+                      }
+                    end
+                  }
+                end,
               error:,
               # the <script> element has to be escaped in any string, as it causes the inline JavaScript to break
               log: run_info.logs.map { |x| [x[0], x[1].to_s.gsub(%r{<(/*script)}, '<`\1'), x[2], x[3]] },
@@ -588,6 +591,18 @@ module Spectre
                   text-transform: uppercase;
                 }
 
+                .spectre-evaluation-list {
+                  list-style: none;
+                  padding: 0;
+                  margin: 0;
+                }
+
+                .spectre-failure-list {
+                  list-style: none;
+                  padding-left: 2em;
+                  color: #e61160;
+                }
+
                 /* spectre icons */
 
                 .spectre-description-status:before {
@@ -911,14 +926,17 @@ module Spectre
                                       </table>
                                     </fieldset>
 
-                                    <fieldset class="spectre-runinfo-failure" v-if="runInfo.failure">
-                                      <legend>Failure</legend>
+                                    <fieldset v-if="runInfo.evaluations.length > 0">
+                                      <legend>Failures</legend>
 
-                                      <table>
-                                        <tr><th>Message</th><td>{{ runInfo.failure.message }}</td></tr>
-                                        <tr><th>Expected</th><td>{{ runInfo.failure.expected }}</td></tr>
-                                        <tr><th>Actual</th><td>{{ runInfo.failure.actual }}</td></tr>
-                                      </table>
+                                      <ul class="spectre-evaluation-list">
+                                        <li  class="spectre-evaluation"v-for="evaluation in runInfo.evaluations">
+                                          <span class="spectre-evaluation-desc">{{ evaluation.desc }}</span>
+                                          <ul class="spectre-failure-list" v-for="failure in evaluation.failures">
+                                            <li class="spectre-failure">{{ failure.message }}</li>
+                                          </ul>
+                                        </li>
+                                      </ul>
                                     </fieldset>
 
                                     <fieldset class="spectre-runinfo-error" v-if="runInfo.error">
@@ -1153,7 +1171,8 @@ module Spectre
 
         FileUtils.mkdir_p(@config['out_path'])
 
-        file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
+        # file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
+        file_path = File.join(@config['out_path'], "spectre-html.html")
 
         File.write(file_path, html_str)
       end
