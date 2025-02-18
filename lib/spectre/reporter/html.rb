@@ -40,8 +40,8 @@ module Spectre
       def report run_infos
         now = Time.now
 
-        failures = run_infos.reject { |x| x.status == :failed }
-        errors = run_infos.reject { |x| x.status == :error }
+        failures = run_infos.select { |x| x.status == :failed }
+        errors = run_infos.select { |x| x.status == :error }
         skipped = run_infos.select { |x| x.status == :skipped }
         succeeded = run_infos.select { |x| x.status == :success }
 
@@ -59,7 +59,7 @@ module Spectre
           command: $COMMAND || 'spectre',
           project: @config['project'] || '',
           date: now.strftime(@date_format),
-          environment: @config['environment'] || '',
+          environment: @config['environment'] || Spectre::DEFAULT_ENV_NAME,
           hostname: Socket.gethostname,
           duration: run_infos.sum { |x| x.finished - x.started },
           failures: failures.count,
