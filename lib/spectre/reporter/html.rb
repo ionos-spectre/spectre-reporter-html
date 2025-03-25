@@ -1171,8 +1171,7 @@ module Spectre
 
         FileUtils.mkdir_p(@config['out_path'])
 
-        # file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
-        file_path = File.join(@config['out_path'], 'spectre-html.html')
+        file_path = File.join(@config['out_path'], "spectre-html_#{now.strftime('%s')}.html")
 
         File.write(file_path, html_str)
       end
