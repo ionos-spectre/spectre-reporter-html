@@ -40,9 +40,9 @@ module Spectre
       def report run_infos
         now = Time.now
 
-        failures = run_infos.select { |x| x.status == :failed }
-        errors = run_infos.select { |x| x.status == :error }
-        skipped = run_infos.select { |x| x.status == :skipped }
+        failures  = run_infos.select { |x| x.status == :failed }
+        errors    = run_infos.select { |x| x.status == :error }
+        skipped   = run_infos.select { |x| x.status == :skipped }
         succeeded = run_infos.select { |x| x.status == :success }
 
         overall_status = if failures.count.positive?
