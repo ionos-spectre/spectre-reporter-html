@@ -115,7 +115,11 @@ module Spectre
                 end,
               error:,
               # the <script> element has to be escaped in any string, as it causes the inline JavaScript to break
-              log: run_info.logs.map { |x| [x[0], x[1].to_s.gsub(%r{<(/*script)}, '<`\1'), x[2], x[3]] },
+              log: run_info.logs.map do |entry|
+                entry[-1].gsub!(/[^[:print:]\n]/, '<np>')
+                entry[-1].gsub!(%r{<(/*script)}, '<`\1')
+                entry
+              end,
             }
           end,
           config: @config.obfuscate!,
@@ -671,7 +675,7 @@ module Spectre
                   border-color: #83bd11;
                 }
 
-                .spectre-log-level-info {
+                .spectre-log-entry.info .spectre-log-level {
                   color: #9ddf1c;
                 }
 
@@ -712,7 +716,7 @@ module Spectre
                   border-color: #bb084a;
                 }
 
-                .spectre-log-level-error {
+                .spectre-log-entry.error .spectre-log-level {
                   color: #e61160;
                 }
 
@@ -753,8 +757,12 @@ module Spectre
                   border-color: #e7ca00;
                 }
 
-                .spectre-log-level-warn {
+                .spectre-log-entry.warn .spectre-log-level {
                   color: #f5d915;
+                }
+
+                .spectre-log-entry.warn .spectre-log-message {
+                  color: #e61160;
                 }
 
                 /* spectre-status colors SKIPPED */
@@ -766,7 +774,7 @@ module Spectre
                   border-color:  #c1d5d9;
                 }
 
-                .spectre-log-level-debug {
+                .spectre-log-entry.debug .spectre-log-level {
                   color: #c1d5d9;
                 }
 
@@ -776,14 +784,24 @@ module Spectre
                   font-family: monospace;
                   font-size: 0.8rem;
                   list-style: none;
+                  display: table;
                   padding: 0rem;
                   margin: 0rem;
                 }
 
                 .spectre-log-entry {
-                  display: block;
+                  display: table-row;
                   font-family: monospace;
                   white-space: pre;
+                }
+
+                .spectre-log-timestamp,
+                .spectre-log-level,
+                .spectre-log-name,
+                .spectre-log-correlation-id,
+                .spectre-log-message {
+                  display: table-cell;
+                  padding-left: 0.5em;
                 }
 
                 .spectre-log-timestamp {
@@ -792,17 +810,31 @@ module Spectre
                 }
 
                 .spectre-log-timestamp:before {
+                  font-style: normal;
                   content: '[';
                   color: #000;
                 }
 
                 .spectre-log-timestamp:after {
+                  font-style: normal;
                   content: ']';
                   color: #000;
                 }
 
                 .spectre-log-level {
                   text-transform: uppercase;
+                }
+
+                .spectre-log-name {
+                  text-align: right;
+                }
+
+                .spectre-log-correlation-id {
+                  color: rgba(0, 0, 0, 0.3);
+                }
+
+                .spectre-log-message {
+                  white-space: pre-wrap;
                 }
               </style>
             </head>
@@ -960,8 +992,8 @@ module Spectre
                                       <legend class="spectre-toggle" @click="toggleLog(runInfo)">Log</legend>
 
                                       <ul class="spectre-log" v-if="shownLogs.includes(runInfo)">
-                                        <li v-for="logEntry in runInfo.log" class="spectre-log-entry">
-                                          <span class="spectre-log-timestamp">{{ logEntry[0] }}</span> <span class="spectre-log-level" :class="'spectre-log-level-' + logEntry[1]">{{ logEntry[1] }}</span> -- <span class="spectre-log-name">{{ logEntry[2] }}</span>: <span class="spectre-log-message">{{ logEntry[3] }}</span>
+                                        <li v-for="logEntry in runInfo.log" :class="logEntry[1].toLowerCase()" class="spectre-log-entry">
+                                          <span class="spectre-log-timestamp">{{ logEntry[0] }}</span> <span class="spectre-log-level">{{ logEntry[1] }}</span> --<span class="spectre-log-name">{{ logEntry[2] }}</span>:<span class="spectre-log-correlation-id">{{ logEntry[3] }}</span><span class="spectre-log-message">{{ logEntry[4] }}</span>
                                         </li>
                                       </ul>
                                     </fieldset>
