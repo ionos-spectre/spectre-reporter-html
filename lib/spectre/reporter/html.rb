@@ -91,9 +91,9 @@ module Spectre
             {
               status: run_info.status,
               subject: run_info.parent.root.desc,
-              context: run_info.parent.desc,
+              context: run_info.context.desc,
+              name: run_info.name,
               tags: run_info.parent.respond_to?(:tags) ? run_info.parent.tags : nil,
-              name: run_info.parent.name,
               desc: run_info.parent.desc,
               file: run_info.parent.respond_to?(:file) ? run_info.parent.file : nil,
               started: run_info.started.strftime(@date_format),
